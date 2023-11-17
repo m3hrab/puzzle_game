@@ -1,2 +1,0 @@
-# Create the opening screen (done)
-# Add the grid that accept the it should hightlight then can type number that show that cell
