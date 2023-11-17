@@ -13,5 +13,6 @@ class Settings():
         self.cell_size = 80
         self.grid_color = (0, 50, 5)
         self.grid_line_width = 2
+        self.grid_top_left = (200, 50)
 
         self.font = pygame.font.SysFont(None, 48)

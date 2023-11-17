@@ -2,8 +2,8 @@
 
 ## To do
 ### Level 1
-- Game Screen
-- Create Grid and place 1 in a random cell each time the game start
+- <strike>Game Screen</strike>
+- <strike>Create Grid and place 1 in a random cell each time the game start</strike>
 - Add Save and Reset Button 
 - Grid cell input
 - Save grid files
