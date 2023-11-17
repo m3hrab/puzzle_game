@@ -2,7 +2,6 @@ import pygame
 import sys 
 from grid import Grid
 from settings import Settings
-
 def run_game():
     pygame.init()
     settings = Settings()
@@ -15,6 +14,9 @@ def run_game():
             if event.type == pygame.QUIT:
                 sys.exit()
 
+            grid.handle_event(event)
+
+        grid.update()
         screen.fill(settings.bg_color)
         grid.draw_grid()
         pygame.display.flip()

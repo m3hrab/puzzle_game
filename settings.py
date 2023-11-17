@@ -11,8 +11,13 @@ class Settings():
         # Grid settings
         self.grid_size = 5
         self.cell_size = 80
-        self.grid_color = (0, 50, 5)
+        self.cell_gap = 3
+        self.grid_color = (255, 255, 255)
         self.grid_line_width = 2
         self.grid_top_left = (200, 50)
 
         self.font = pygame.font.SysFont(None, 48)
+
+
+        # Button settings
+        self.button_font = pygame.font.SysFont(None, 24)
