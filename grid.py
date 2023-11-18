@@ -25,8 +25,9 @@ class Grid():
         self.save_button = Button(screen, settings, "Save", 285, 520)
         self.reset_button = Button(screen, settings, "Reset", 395, 520)
 
+        self.level = 1
 
-
+    
     def load_grid(self):
         """Load the grid from a file, or initialize a new one if the file doesn't exist."""
         try:
@@ -49,7 +50,40 @@ class Grid():
         """Reset the grid to its initial state."""
         self.initialize_grid()
 
+    def is_level_complete(self):
+        """Check if the level is complete."""
+        for col in range(self.settings.grid_size):
+            column = [row[col] for row in self.grid]
+            temp = [cell for cell in column if cell != 1]
+            if 0 in temp or temp != sorted(temp):
+                return False
+        
+        self.level += 1
+        if self.level == 2:
+            self.expand_grid()
+        return True   
     
+    def expand_grid(self):
+        """Expand the grid by adding a ring of empty cells around it."""
+        new_grid = [[0 for _ in range(self.settings.grid_size + 2)] for _ in range(self.settings.grid_size + 2)]
+        for i in range(self.settings.grid_size):
+            for j in range(self.settings.grid_size):
+                new_grid[i+1][j+1] = self.grid[i][j]
+        self.grid = new_grid
+        self.settings.grid_size += 2
+
+        # Update grid_top_left
+        self.grid_top_left = (
+            (self.settings.screen_width - self.settings.grid_size * self.settings.cell_size) // 2,30)
+
+    def draw_level_complete_message(self):
+        """Draw the level complete message on the screen."""
+        if self.is_level_complete():
+            text = self.settings.font.render('Level complete!', True, (0, 0, 0))
+            text_rect = text.get_rect()
+            text_rect.center = (self.settings.screen_width // 2, 490)
+            self.screen.blit(text, text_rect)
+
 
     def update(self):
         """Update the grid based on the key buffer."""
@@ -57,19 +91,38 @@ class Grid():
             number = int(self.key_buffer)
             if 1 < number < 26:
                     if not self.number_exists_in_grid(number):
-                        self.grid[self.selected_cell[0]][self.selected_cell[1]] = number
-                        self.key_buffer = ''
+                        if self.is_adjacent_to_predecessor(number):
+                            self.grid[self.selected_cell[0]][self.selected_cell[1]] = number
+                            self.key_buffer = ''
+                        else:
+                            self.invalid_key_message = 'Invalid location or number'
+                            self.invalid_key_time = time.time()
+
                     else:
                         self.invalid_key_message = str(number) + ' is already exists in the grid'
                         self.invalid_key_time = time.time()
             else:
                 self.invalid_key_message = 'Only numbers between 2 and 25 are allowed'
                 self.invalid_key_time = time.time()
+            
             self.key_buffer = ''
         
-        if self.invalid_key_message and (time.time() - self.invalid_key_time > 2 or self.selected_cell != self.last_selected_cell):
+        if self.invalid_key_message and (time.time() - self.invalid_key_time > 2):
+            self.invalid_key_message = ''
+        elif self.selected_cell != self.last_selected_cell:
+            self.last_selected_cell = self.selected_cell
+            time.sleep(0.2)  # delay before clearing the message
             self.invalid_key_message = ''
 
+
+    def is_adjacent_to_predecessor(self, number):
+        """Check if the selected cell is adjacent to the cell containing the predecessor number."""
+        predecessor = number - 1
+        for i in range(self.settings.grid_size):
+            for j in range(self.settings.grid_size):
+                if self.grid[i][j] == predecessor:
+                    return abs(self.selected_cell[0] - i) <= 1 and abs(self.selected_cell[1] - j) <= 1
+        return False
 
 
     def handle_event(self, event):
@@ -79,6 +132,7 @@ class Grid():
         elif event.type == pygame.KEYDOWN:
             self.handle_keyboard_event(event)
     
+
     def handle_mouse_event(self, event):
         """Handle a mouse button down event."""
         mouse_pos = pygame.mouse.get_pos()
@@ -91,11 +145,31 @@ class Grid():
         else:
             self.select_cell(mouse_pos)
 
+
     def handle_keyboard_event(self, event):
         """Handle keyboard events."""
         if event.key == pygame.K_BACKSPACE and self.select_cell is not None:
             self.key_buffer = ''
             self.grid[self.selected_cell[0]][self.selected_cell[1]] = 0
+            
+        elif event.key == pygame.K_RETURN:
+            if self.key_buffer != '':
+                number = int(self.key_buffer)
+                if 1 < number < 26:
+                    if not self.number_exists_in_grid(number):
+                        if number == 2 or self.is_adjacent_to_predecessor(number):
+                            self.grid[self.selected_cell[0]][self.selected_cell[1]] = number
+                            self.key_buffer = ''
+                        else:
+                            self.invalid_key_message = 'Invalid location'
+                            self.invalid_key_time = time.time()
+                    else:
+                        self.invalid_key_message = 'Number already exists'
+                        self.invalid_key_time = time.time()
+                else:
+                    self.invalid_key_message = 'Only numbers between 2 to 25 are allowed'
+                    self.invalid_key_time = time.time()
+
 
         elif event.unicode.isdigit():
             self.key_buffer += event.unicode
@@ -131,6 +205,8 @@ class Grid():
         self.save_button.draw()
         self.reset_button.draw()
         self.draw_invalid_key_message()
+        self.draw_level_complete_message()
+
 
     def draw_background(self):
         """Draw the background of the grid."""
