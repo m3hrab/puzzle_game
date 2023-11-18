@@ -193,6 +193,8 @@ class Grid():
         grid_x = (mouse_pos[0] - self.grid_top_left[0]) // self.settings.cell_size
         grid_y = (mouse_pos[1] - self.grid_top_left[1]) // self.settings.cell_size
         if 0 <= grid_x < self.settings.grid_size and 0 <= grid_y < self.settings.grid_size:
+            if self.level == 2 and 1 <= grid_x <= 5  and 1 <= grid_y <= 5:
+                return
             if self.grid[grid_x][grid_y] != 1:  # Only select the cell if its value is not 1
                 self.last_selected_cell = self.selected_cell
                 self.selected_cell = (grid_x, grid_y)
