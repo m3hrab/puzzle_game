@@ -222,19 +222,26 @@ class Grid():
         for x in range(self.settings.grid_size):
             for y in range(self.settings.grid_size):
                 rect = pygame.Rect(self.grid_top_left[0] + x * self.settings.cell_size, 
-                                   self.grid_top_left[1] + y * self.settings.cell_size, 
+                                self.grid_top_left[1] + y * self.settings.cell_size, 
                                     self.settings.cell_size - self.settings.cell_gap, 
                                     self.settings.cell_size - self.settings.cell_gap)
                 
+                # Determine the cell color
+                if self.level == 2 and (x == 0 or x == self.settings.grid_size - 1 or y == 0 or y == self.settings.grid_size - 1):
+                    cell_color = (0, 0, 255)  # Blue for outer cells in level 2
+                    if (x == 0 and y == 0) or (x == 0 and y == self.settings.grid_size - 1) or (x == self.settings.grid_size - 1 and y == 0) or (x == self.settings.grid_size - 1 and y == self.settings.grid_size - 1):
+                        cell_color = (255, 255, 0)  # Yellow for corner cells
+                else:
+                    cell_color = (255, 255, 255)  # White for other cells
+
                 # Draw the cell
-                pygame.draw.rect(self.screen, self.settings.grid_color, rect)
+                pygame.draw.rect(self.screen, cell_color, rect)
                 if self.grid[x][y] != 0:
                     self.draw_cell_text(x, y, rect)
-
                 # Draw a highlight for the selected cell
                 if self.selected_cell == (x, y):
                     pygame.draw.rect(self.screen, (255,0,0), rect, self.settings.grid_line_width)
-
+        
     def draw_cell_text(self, x, y, rect):
         """Draw the text for a cell."""
         if self.grid[x][y] == 1:
