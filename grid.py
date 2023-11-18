@@ -15,9 +15,15 @@ class Grid():
         self.key_buffer = ''
         self.key_time = 0
         
+        # Invalid key message
+        self.invalid_key_message = ''
+        self.invalid_key_time = 0
+        
+        self.last_selected_cell = None
+
         # Add two buttons to the screen
-        self.save_button = Button(screen, settings, "Save", 285, 500)
-        self.reset_button = Button(screen, settings, "Reset", 395, 500)
+        self.save_button = Button(screen, settings, "Save", 285, 520)
+        self.reset_button = Button(screen, settings, "Reset", 395, 520)
 
 
 
@@ -50,29 +56,21 @@ class Grid():
         if self.key_buffer and time.time() - self.key_time > 0.5:  # 0.5 seconds
             number = int(self.key_buffer)
             if 1 < number < 26:
-                self.grid[self.selected_cell[0]][self.selected_cell[1]] = number
+                    if not self.number_exists_in_grid(number):
+                        self.grid[self.selected_cell[0]][self.selected_cell[1]] = number
+                        self.key_buffer = ''
+                    else:
+                        self.invalid_key_message = str(number) + ' is already exists in the grid'
+                        self.invalid_key_time = time.time()
+            else:
+                self.invalid_key_message = 'Only numbers between 2 and 25 are allowed'
+                self.invalid_key_time = time.time()
             self.key_buffer = ''
+        
+        if self.invalid_key_message and (time.time() - self.invalid_key_time > 2 or self.selected_cell != self.last_selected_cell):
+            self.invalid_key_message = ''
 
 
-    # def handle_event(self, event):
-    #     """Handle a mouse button down event and keyboard events."""
-    #     if event.type == pygame.MOUSEBUTTONDOWN:
-    #         mouse_pos = pygame.mouse.get_pos()
-    #         if self.save_button.rect.collidepoint(mouse_pos):
-    #             self.settings.button_sound.play()
-    #             self.save()
-    #         elif self.reset_button.rect.collidepoint(mouse_pos):
-    #             self.settings.button_sound.play()
-    #             self.reset()
-    #         else:
-    #             self.select_cell(mouse_pos)
-            # elif event.type == pygame.KEYDOWN:
-            # if self.selected_cell is not None and event.unicode.isdigit():
-            #     self.settings.button_sound.play()
-            #     self.key_buffer += event.unicode
-            #     self.key_time = time.time()
-            # else:
-            #     print("Invalid keypress")
 
     def handle_event(self, event):
         """Handle a mouse button down event and keyboard events."""
@@ -98,27 +96,33 @@ class Grid():
         if event.key == pygame.K_BACKSPACE and self.select_cell is not None:
             self.key_buffer = ''
             self.grid[self.selected_cell[0]][self.selected_cell[1]] = 0
-        elif event.key == pygame.K_RETURN:
-            if self.key_buffer != '':
-                number = int(self.key_buffer)
-                if 1 < number < 26:
-                    self.grid[self.selected_cell[0]][self.selected_cell[1]] = number
-                self.key_buffer = ''
+
         elif event.unicode.isdigit():
             self.key_buffer += event.unicode
-            self.key_time = time.time()
+            self.key_time = time.time() 
+            self.invalid_key_message = ''
         else:   
-            print("Invalid keypress")
+            self.invalid_key_message = 'Invalid keypress'
+            self.invalid_key_time = time.time()
 
 
+    def number_exists_in_grid(self, number):
+        """Return True if the number exists in the grid, False otherwise."""
+        for row in self.grid:
+            if number in row:
+                return True
+        return False
 
+    
     def select_cell(self, mouse_pos):
         """Select a cell based on the mouse position."""
         grid_x = (mouse_pos[0] - self.grid_top_left[0]) // self.settings.cell_size
         grid_y = (mouse_pos[1] - self.grid_top_left[1]) // self.settings.cell_size
         if 0 <= grid_x < self.settings.grid_size and 0 <= grid_y < self.settings.grid_size:
             if self.grid[grid_x][grid_y] != 1:  # Only select the cell if its value is not 1
+                self.last_selected_cell = self.selected_cell
                 self.selected_cell = (grid_x, grid_y)
+
 
     def draw_grid(self):
         """Draw the grid on the screen."""
@@ -126,6 +130,7 @@ class Grid():
         self.draw_cells()
         self.save_button.draw()
         self.reset_button.draw()
+        self.draw_invalid_key_message()
 
     def draw_background(self):
         """Draw the background of the grid."""
@@ -161,3 +166,11 @@ class Grid():
         text_rect = text.get_rect()
         text_rect.center = rect.center
         self.screen.blit(text, text_rect)
+
+    def draw_invalid_key_message(self):
+        """Draw the invalid key message on the screen."""
+        if self.invalid_key_message:
+            text = self.settings.font.render(self.invalid_key_message, True, (255, 0, 0))
+            text_rect = text.get_rect()
+            text_rect.center = (self.settings.screen_width // 2, 490)
+            self.screen.blit(text, text_rect)

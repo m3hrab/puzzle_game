@@ -15,7 +15,7 @@ class Settings():
         self.cell_gap = 2
         self.grid_color = (255, 255, 255)
         self.grid_line_width = 2
-        self.grid_top_left = (250, 110)
+        self.grid_top_left = (250, 90)
 
         self.font = pygame.font.SysFont(None, 36)
 

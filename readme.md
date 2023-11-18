@@ -7,5 +7,5 @@
 - <strike>Add Save and Reset Button</strike> 
 - <strike>Grid cell input</strike>
 - <strike>Save grid files</strike>
-- Add message option
+- <strike>Add message option</strike>
 - Check level complete condition
