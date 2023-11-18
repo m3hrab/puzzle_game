@@ -44,6 +44,7 @@ class Grid():
         self.initialize_grid()
 
     
+
     def update(self):
         """Update the grid based on the key buffer."""
         if self.key_buffer and time.time() - self.key_time > 0.5:  # 0.5 seconds
@@ -52,21 +53,64 @@ class Grid():
                 self.grid[self.selected_cell[0]][self.selected_cell[1]] = number
             self.key_buffer = ''
 
+
+    # def handle_event(self, event):
+    #     """Handle a mouse button down event and keyboard events."""
+    #     if event.type == pygame.MOUSEBUTTONDOWN:
+    #         mouse_pos = pygame.mouse.get_pos()
+    #         if self.save_button.rect.collidepoint(mouse_pos):
+    #             self.settings.button_sound.play()
+    #             self.save()
+    #         elif self.reset_button.rect.collidepoint(mouse_pos):
+    #             self.settings.button_sound.play()
+    #             self.reset()
+    #         else:
+    #             self.select_cell(mouse_pos)
+            # elif event.type == pygame.KEYDOWN:
+            # if self.selected_cell is not None and event.unicode.isdigit():
+            #     self.settings.button_sound.play()
+            #     self.key_buffer += event.unicode
+            #     self.key_time = time.time()
+            # else:
+            #     print("Invalid keypress")
+
     def handle_event(self, event):
         """Handle a mouse button down event and keyboard events."""
         if event.type == pygame.MOUSEBUTTONDOWN:
-            mouse_pos = pygame.mouse.get_pos()
-            if self.save_button.rect.collidepoint(mouse_pos):
-                self.save()
-            elif self.reset_button.rect.collidepoint(mouse_pos):
-                self.reset()
-            else:
-                self.select_cell(mouse_pos)
-
+            self.handle_mouse_event(event)
         elif event.type == pygame.KEYDOWN:
-            if self.selected_cell is not None and event.unicode.isdigit():
-                self.key_buffer += event.unicode
-                self.key_time = time.time()
+            self.handle_keyboard_event(event)
+    
+    def handle_mouse_event(self, event):
+        """Handle a mouse button down event."""
+        mouse_pos = pygame.mouse.get_pos()
+        if self.save_button.rect.collidepoint(mouse_pos):
+            self.settings.button_sound.play()
+            self.save()
+        elif self.reset_button.rect.collidepoint(mouse_pos):
+            self.settings.button_sound.play()
+            self.reset()
+        else:
+            self.select_cell(mouse_pos)
+
+    def handle_keyboard_event(self, event):
+        """Handle keyboard events."""
+        if event.key == pygame.K_BACKSPACE and self.select_cell is not None:
+            self.key_buffer = ''
+            self.grid[self.selected_cell[0]][self.selected_cell[1]] = 0
+        elif event.key == pygame.K_RETURN:
+            if self.key_buffer != '':
+                number = int(self.key_buffer)
+                if 1 < number < 26:
+                    self.grid[self.selected_cell[0]][self.selected_cell[1]] = number
+                self.key_buffer = ''
+        elif event.unicode.isdigit():
+            self.key_buffer += event.unicode
+            self.key_time = time.time()
+        else:   
+            print("Invalid keypress")
+
+
 
     def select_cell(self, mouse_pos):
         """Select a cell based on the mouse position."""
@@ -85,9 +129,9 @@ class Grid():
 
     def draw_background(self):
         """Draw the background of the grid."""
-        bg_rect = pygame.Rect(self.grid_top_left[0]-3, self.grid_top_left[1]-3, 
-                              self.settings.grid_size * self.settings.cell_size + 3, 
-                              self.settings.grid_size * self.settings.cell_size + 3)
+        bg_rect = pygame.Rect(self.grid_top_left[0]-2, self.grid_top_left[1]-2, 
+                              self.settings.grid_size * self.settings.cell_size + 2, 
+                              self.settings.grid_size * self.settings.cell_size + 2)
         pygame.draw.rect(self.screen, (0, 0, 0), bg_rect)
 
     def draw_cells(self):
@@ -99,6 +143,7 @@ class Grid():
                                     self.settings.cell_size - self.settings.cell_gap, 
                                     self.settings.cell_size - self.settings.cell_gap)
                 
+                # Draw the cell
                 pygame.draw.rect(self.screen, self.settings.grid_color, rect)
                 if self.grid[x][y] != 0:
                     self.draw_cell_text(x, y, rect)
@@ -109,7 +154,10 @@ class Grid():
 
     def draw_cell_text(self, x, y, rect):
         """Draw the text for a cell."""
-        text = self.settings.font.render(str(self.grid[x][y]), True, (255, 0, 0))
+        if self.grid[x][y] == 1:
+            text = self.settings.font.render('1', True, (255, 0, 0))
+        else:
+            text = self.settings.font.render(str(self.grid[x][y]), True, (0, 0, 0))
         text_rect = text.get_rect()
         text_rect.center = rect.center
         self.screen.blit(text, text_rect)
