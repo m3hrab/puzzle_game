@@ -8,4 +8,10 @@
 - <strike>Grid cell input</strike>
 - <strike>Save grid files</strike>
 - <strike>Add message option</strike>
-- Check level complete condition
+- <strike>Check level 1  complete condition</strike>
+
+
+### Level 2
+- <strike>ADD extra ring cell</stike>
+- <strike>Level 2 Condition</stike>
+- Debugging issues: saving issue

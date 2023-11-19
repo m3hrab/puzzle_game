@@ -8,7 +8,6 @@ class Grid():
     def __init__(self, screen, settings) -> None:
         self.screen = screen
         self.settings = settings
-        self.grid_top_left = settings.grid_top_left
         self.load_grid()
         self.selected_cell = None
 
@@ -25,43 +24,87 @@ class Grid():
         self.save_button = Button(screen, settings, "Save", 285, 520)
         self.reset_button = Button(screen, settings, "Reset", 395, 520)
 
-        self.level = 1
 
     
     def load_grid(self):
-        """Load the grid from a file, or initialize a new one if the file doesn't exist."""
+        """Load the grid and level from a file, or initialize a new one if the file doesn't exist."""
         try:
             with open('grid.txt', 'r') as f:
-                self.grid = json.loads(f.read())
+                save_data = json.loads(f.read())
+                self.grid = save_data["grid"]
+                self.level = save_data["level"]
+
+                if self.level == 2 or self.level == 3:
+                    self.settings.grid_top_left = (190, 30)
+                    self.expand_grid() 
+                    # self.settings.grid_size = 7
+                else:
+                    self.settings.grid_size = 5
+                    self.settings.grid_top_left = (250, 90)
+
+
         except FileNotFoundError:
             self.initialize_grid()
+            self.level = 1
+            self.settings.grid_size = 5
+            self.settings.grid_top_left = (250, 90)
 
     def initialize_grid(self):
         """Initialize a new grid with a random cell set to 1."""
         self.grid = [[0 for _ in range(self.settings.grid_size)] for _ in range(self.settings.grid_size)]
         self.grid[random.randint(0, self.settings.grid_size - 1)][random.randint(0, self.settings.grid_size - 1)] = 1
 
+
+    # Save and Reset 
     def save(self):
-        """Save the current grid to a file."""
+        """Save the current grid and level to a file."""
         with open('grid.txt', 'w') as f:
-            f.write(json.dumps(self.grid))
+            save_data = {
+                "grid": self.grid,
+                "level": self.level
+            }
+            f.write(json.dumps(save_data))
+
 
     def reset(self):
         """Reset the grid to its initial state."""
+        self.level = 1
+        self.settings.grid_size = 5
+        self.settings.grid_top_left = (250, 90)
         self.initialize_grid()
+        self.selected_cell = None
 
+    # Level complete and grid expansion
     def is_level_complete(self):
         """Check if the level is complete."""
-        for col in range(self.settings.grid_size):
-            column = [row[col] for row in self.grid]
-            temp = [cell for cell in column if cell != 1]
-            if 0 in temp or temp != sorted(temp):
-                return False
+        if self.level == 1:
+            for col in range(self.settings.grid_size):
+                column = [row[col] for row in self.grid]
+                temp = [cell for cell in column if cell != 1]
+                if 0 in temp or temp != sorted(temp):
+                    return False
+                
+            self.level += 1
+            if self.level == 2:
+                self.settings.grid_top_left = (190, 30)
+                self.expand_grid()
+                
+            return True  
+            
+        elif self.level == 2:
+            # check the outer cells is not 0
+            for i in range(self.settings.grid_size):
+                if self.grid[0][i] == 0 or self.grid[self.settings.grid_size - 1][i] == 0 or self.grid[i][0] == 0 or self.grid[i][self.settings.grid_size - 1] == 0:
+                    return False
+            
+            self.level += 1
+            return True
+    
+        if self.level == 3:
+            print("Show level 3")
+                
         
-        self.level += 1
-        if self.level == 2:
-            self.expand_grid()
-        return True   
+            
     
     def expand_grid(self):
         """Expand the grid by adding a ring of empty cells around it."""
@@ -85,6 +128,32 @@ class Grid():
             self.screen.blit(text, text_rect)
 
     
+
+    def is_corner_cell(self, cell):
+        """Return True if the cell is a corner cell, False otherwise."""
+        return (cell[0] == 0 and cell[1] == 0) or (cell[0] == 0 and cell[1] == self.settings.grid_size - 1) or (cell[0] == self.settings.grid_size - 1 and cell[1] == 0) or (cell[0] == self.settings.grid_size - 1 and cell[1] == self.settings.grid_size - 1)
+    
+    def number_exists_in_inner_grid_diagonal(self, number, corner):
+        """Check if a number exists in the specific diagonal of the inner 5x5 grid."""
+        corner = (corner[0], corner[1])
+        if corner == (0, 0):
+            for i in range(1, 6):
+                if self.grid[i][i] == number:
+                    return True
+        elif corner == (0, self.settings.grid_size - 1):
+            for i in range(1, 6):
+                if self.grid[i][6 - i] == number:
+                    return True
+        elif corner == (self.settings.grid_size - 1, 0):
+            for i in range(1, 6):
+                if self.grid[6 - i][i] == number:
+                    return True
+        elif corner == (self.settings.grid_size - 1, self.settings.grid_size - 1):
+            for i in range(1, 6):
+                if self.grid[6 - i][6 - i] == number:
+                    return True
+        return False
+    
     def update(self):
         """Update the grid based on the key buffer."""
         if self.key_buffer and time.time() - self.key_time > 0.5:  # 0.5 seconds
@@ -93,11 +162,17 @@ class Grid():
                 if self.level == 2 and (self.selected_cell[0] == 0 or self.selected_cell[0] == self.settings.grid_size - 1 or self.selected_cell[1] == 0 or self.selected_cell[1] == self.settings.grid_size - 1):
                     # In level 2, outer cells accept all values between 2 and 25
                     if not self.number_exists_in_grid(number):
-                        self.grid[self.selected_cell[0]][self.selected_cell[1]] = number
-                        self.key_buffer = ''
+                        if self.is_corner_cell(self.selected_cell) and not self.number_exists_in_inner_grid_diagonal(number, self.selected_cell):
+                            self.invalid_key_message = 'Invalid location'
+                            self.invalid_key_time = time.time()
+                        else:
+                            self.grid[self.selected_cell[0]][self.selected_cell[1]] = number
+                            self.key_buffer = ''
+
                     else:
                         self.invalid_key_message = str(number) + ' is already exists.'
                         self.invalid_key_time = time.time()
+
                 else:
                     if not self.number_exists_in_grid(number):
                         if self.is_adjacent_to_predecessor(number):
@@ -109,6 +184,7 @@ class Grid():
                     else:
                         self.invalid_key_message = str(number) + ' is already exists in the grid'
                         self.invalid_key_time = time.time()
+
             else:
                 self.invalid_key_message = 'Only numbers between 2 and 25 are allowed'
                 self.invalid_key_time = time.time()
@@ -159,25 +235,6 @@ class Grid():
         if event.key == pygame.K_BACKSPACE and self.select_cell is not None:
             self.key_buffer = ''
             self.grid[self.selected_cell[0]][self.selected_cell[1]] = 0
-            
-        elif event.key == pygame.K_RETURN:
-            if self.key_buffer != '':
-                number = int(self.key_buffer)
-                if 1 < number < 26:
-                    if not self.number_exists_in_grid(number):
-                        if number == 2 or self.is_adjacent_to_predecessor(number):
-                            self.grid[self.selected_cell[0]][self.selected_cell[1]] = number
-                            self.key_buffer = ''
-                        else:
-                            self.invalid_key_message = 'Invalid location'
-                            self.invalid_key_time = time.time()
-                    else:
-                        self.invalid_key_message = 'Number already exists'
-                        self.invalid_key_time = time.time()
-                else:
-                    self.invalid_key_message = 'Only numbers between 2 to 25 are allowed'
-                    self.invalid_key_time = time.time()
-
 
         elif event.unicode.isdigit():
             self.key_buffer += event.unicode
@@ -206,8 +263,8 @@ class Grid():
     
     def select_cell(self, mouse_pos):
         """Select a cell based on the mouse position."""
-        grid_x = (mouse_pos[0] - self.grid_top_left[0]) // self.settings.cell_size
-        grid_y = (mouse_pos[1] - self.grid_top_left[1]) // self.settings.cell_size
+        grid_x = (mouse_pos[0] - self.settings.grid_top_left[0]) // self.settings.cell_size
+        grid_y = (mouse_pos[1] - self.settings.grid_top_left[1]) // self.settings.cell_size
         if 0 <= grid_x < self.settings.grid_size and 0 <= grid_y < self.settings.grid_size:
             if self.level == 2 and 1 <= grid_x <= 5  and 1 <= grid_y <= 5:
                 return
@@ -228,7 +285,7 @@ class Grid():
 
     def draw_background(self):
         """Draw the background of the grid."""
-        bg_rect = pygame.Rect(self.grid_top_left[0]-2, self.grid_top_left[1]-2, 
+        bg_rect = pygame.Rect(self.settings.grid_top_left[0]-2, self.settings.grid_top_left[1]-2, 
                               self.settings.grid_size * self.settings.cell_size + 2, 
                               self.settings.grid_size * self.settings.cell_size + 2)
         pygame.draw.rect(self.screen, (0, 0, 0), bg_rect)
@@ -237,13 +294,13 @@ class Grid():
         """Draw the cells of the grid."""
         for x in range(self.settings.grid_size):
             for y in range(self.settings.grid_size):
-                rect = pygame.Rect(self.grid_top_left[0] + x * self.settings.cell_size, 
-                                self.grid_top_left[1] + y * self.settings.cell_size, 
+                rect = pygame.Rect(self.settings.grid_top_left[0] + x * self.settings.cell_size, 
+                                self.settings.grid_top_left[1] + y * self.settings.cell_size, 
                                     self.settings.cell_size - self.settings.cell_gap, 
                                     self.settings.cell_size - self.settings.cell_gap)
                 
                 # Determine the cell color
-                if self.level == 2 and (x == 0 or x == self.settings.grid_size - 1 or y == 0 or y == self.settings.grid_size - 1):
+                if (self.level == 2 or self.level == 3) and (x == 0 or x == self.settings.grid_size - 1 or y == 0 or y == self.settings.grid_size - 1):
                     cell_color = (0, 0, 255)  # Blue for outer cells in level 2
                     if (x == 0 and y == 0) or (x == 0 and y == self.settings.grid_size - 1) or (x == self.settings.grid_size - 1 and y == 0) or (x == self.settings.grid_size - 1 and y == self.settings.grid_size - 1):
                         cell_color = (255, 255, 0)  # Yellow for corner cells
