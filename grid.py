@@ -26,7 +26,6 @@ class Grid():
         self.reset_button = Button(screen, settings, "Reset", 395, 520)
 
 
-    
     def load_grid(self):
         """Load the grid and level from a file, or initialize a new one if the file doesn't exist."""
         try:
@@ -76,6 +75,34 @@ class Grid():
         self.selected_cell = None
         self.save()
 
+    def draw_next_level_button(self):
+        """Draw the next level button on the screen."""
+        msg = 'Level ' + str(self.level) + ' complete!'
+        text = self.settings.font.render(msg, True, (0, 255, 0))
+        text_rect = text.get_rect()
+        text_rect.center = (self.settings.screen_width // 2, self.settings.screen_height // 2 - 50)
+
+        next_level_button = Button(self.screen, self.settings, "Next level", 350, 450)
+
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                elif event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
+                    if next_level_button.rect.collidepoint(pygame.mouse.get_pos()):
+                        self.level += 1
+                        if self.level == 2:
+                            self.settings.grid_top_left = (190, 30)
+                            self.expand_grid()
+                        
+                        return
+
+                self.screen.fill((255, 255, 255))
+                self.screen.blit(text, text_rect)
+                next_level_button.draw()
+                    
+            pygame.display.flip()
+
     # Level complete and grid expansion
     def is_level_complete(self):
         """Check if the level is complete."""
@@ -85,13 +112,9 @@ class Grid():
                 temp = [cell for cell in column if cell != 1]
                 if 0 in temp or temp != sorted(temp):
                     return False
-                
-            self.level += 1
-            if self.level == 2:
-                self.settings.grid_top_left = (190, 30)
-                self.expand_grid()
+            
 
-            time.sleep(2)
+            self.draw_next_level_button()
             return True  
             
         elif self.level == 2:
@@ -106,8 +129,7 @@ class Grid():
                     if self.grid[i][j] != 1:
                         self.grid[i][j] = 0
 
-            self.level += 1
-            time.sleep(2)
+            self.draw_next_level_button
             return True
 
         elif self.level == 3:
