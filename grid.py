@@ -84,12 +84,21 @@ class Grid():
             text_rect.center = (self.settings.screen_width // 2, 490)
             self.screen.blit(text, text_rect)
 
-
+    
     def update(self):
         """Update the grid based on the key buffer."""
         if self.key_buffer and time.time() - self.key_time > 0.5:  # 0.5 seconds
             number = int(self.key_buffer)
             if 1 < number < 26:
+                if self.level == 2 and (self.selected_cell[0] == 0 or self.selected_cell[0] == self.settings.grid_size - 1 or self.selected_cell[1] == 0 or self.selected_cell[1] == self.settings.grid_size - 1):
+                    # In level 2, outer cells accept all values between 2 and 25
+                    if not self.number_exists_in_grid(number):
+                        self.grid[self.selected_cell[0]][self.selected_cell[1]] = number
+                        self.key_buffer = ''
+                    else:
+                        self.invalid_key_message = str(number) + ' is already exists.'
+                        self.invalid_key_time = time.time()
+                else:
                     if not self.number_exists_in_grid(number):
                         if self.is_adjacent_to_predecessor(number):
                             self.grid[self.selected_cell[0]][self.selected_cell[1]] = number
@@ -97,7 +106,6 @@ class Grid():
                         else:
                             self.invalid_key_message = 'Invalid location or number'
                             self.invalid_key_time = time.time()
-
                     else:
                         self.invalid_key_message = str(number) + ' is already exists in the grid'
                         self.invalid_key_time = time.time()
@@ -106,13 +114,13 @@ class Grid():
                 self.invalid_key_time = time.time()
             
             self.key_buffer = ''
-        
-        if self.invalid_key_message and (time.time() - self.invalid_key_time > 2):
-            self.invalid_key_message = ''
-        elif self.selected_cell != self.last_selected_cell:
-            self.last_selected_cell = self.selected_cell
-            time.sleep(0.2)  # delay before clearing the message
-            self.invalid_key_message = ''
+            
+            if self.invalid_key_message and (time.time() - self.invalid_key_time > 2):
+                self.invalid_key_message = ''
+            elif self.selected_cell != self.last_selected_cell:
+                self.last_selected_cell = self.selected_cell
+                time.sleep(0.2)  # delay before clearing the message
+                self.invalid_key_message = ''
 
 
     def is_adjacent_to_predecessor(self, number):
@@ -182,11 +190,19 @@ class Grid():
 
     def number_exists_in_grid(self, number):
         """Return True if the number exists in the grid, False otherwise."""
-        for row in self.grid:
-            if number in row:
-                return True
-        return False
 
+        if self.level == 1:
+            for row in self.grid:
+                if number in row:
+                    return True
+        # return False
+        elif self.level == 2:
+            for i in range(self.settings.grid_size):
+                for j in range(self.settings.grid_size):
+                    if self.level == 2 and (i == 0 or i == self.settings.grid_size - 1 or j == 0 or j == self.settings.grid_size - 1):
+                        if self.grid[i][j] == number:
+                            return True
+        return False
     
     def select_cell(self, mouse_pos):
         """Select a cell based on the mouse position."""
