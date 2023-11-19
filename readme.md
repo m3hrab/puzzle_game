@@ -12,7 +12,7 @@
 
 
 ### Level 2
-- <strike>ADD extra ring cell</srtike>
+- <strike>ADD extra ring cell</strike>
 - <strike>Level 2 Condition</strike>
 - <strike>Issues: saving issue in level2</strike>
 
