@@ -19,6 +19,7 @@ class Grid():
         self.invalid_key_time = 0
         
         self.last_selected_cell = None
+        self.last_number = 1
 
         # Add two buttons to the screen
         self.save_button = Button(screen, settings, "Save", 285, 520)
@@ -73,6 +74,7 @@ class Grid():
         self.settings.grid_top_left = (250, 90)
         self.initialize_grid()
         self.selected_cell = None
+        self.save()
 
     # Level complete and grid expansion
     def is_level_complete(self):
@@ -89,6 +91,7 @@ class Grid():
                 self.settings.grid_top_left = (190, 30)
                 self.expand_grid()
 
+            time.sleep(2)
             return True  
             
         elif self.level == 2:
@@ -97,15 +100,55 @@ class Grid():
                 if self.grid[0][i] == 0 or self.grid[self.settings.grid_size - 1][i] == 0 or self.grid[i][0] == 0 or self.grid[i][self.settings.grid_size - 1] == 0:
                     return False
             
+            # Level 2 is complete, hide all the numbers expect 1 from the 5x5 grid
+            for i in range(1,6):
+                for j in range(1,6):
+                    if self.grid[i][j] != 1:
+                        self.grid[i][j] = 0
+
             self.level += 1
+            time.sleep(2)
             return True
-    
-        if self.level == 3:
-            print("Show level 3")
-                
-        
+
+        elif self.level == 3:
+            for i in range(1,6):
+                for j in range(1,6):
+                    if self.grid[i][j] == 0:
+                        return False
+            
+            self.display_game_complete_screen()        
             
     
+    def display_game_complete_screen(self):
+        """Display the game complete screen."""
+        self.screen.fill((255, 255, 255))
+        text = self.settings.font.render('Congratulations!', True, (0, 0, 0))
+        text_rect = text.get_rect()
+        text_rect.center = (self.settings.screen_width // 2, self.settings.screen_height // 2 - 50)
+        self.screen.blit(text, text_rect)
+
+        text = self.settings.font.render('You have completed all the levels.', True, (0, 0, 0))
+        text_rect = text.get_rect()
+        text_rect.center = (self.settings.screen_width // 2, self.settings.screen_height // 2)
+        self.screen.blit(text, text_rect)
+
+        # Play again button
+        play_again_button = Button(self.screen, self.settings, "Play again", 350, 520)
+        play_again_button.draw()
+
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                elif event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
+                    if play_again_button.rect.collidepoint(pygame.mouse.get_pos()):
+                        self.reset()
+                        return
+                    
+            pygame.display.flip()
+
+
+            
     def expand_grid(self):
         """Expand the grid by adding a ring of empty cells around it."""
         new_grid = [[0 for _ in range(self.settings.grid_size + 2)] for _ in range(self.settings.grid_size + 2)]
@@ -116,8 +159,7 @@ class Grid():
         self.settings.grid_size += 2
 
         # Update grid_top_left
-        self.grid_top_left = (
-            (self.settings.screen_width - self.settings.grid_size * self.settings.cell_size) // 2,30)
+        self.grid_top_left = ((self.settings.screen_width - self.settings.grid_size * self.settings.cell_size) // 2,30)
 
     def draw_level_complete_message(self):
         """Draw the level complete message on the screen."""
@@ -153,7 +195,41 @@ class Grid():
                 if self.grid[6 - i][6 - i] == number:
                     return True
         return False
+
+    def number_exists_in_inner_grid_column(self, number, column):
+        """Check if a number exists in a specific column in the inner 5x5 grid."""
+        for i in range(1, 6):
+            if self.grid[i][column] == number:
+                return True
+        return False
+
+    def number_exists_in_inner_grid_row(self, number, row):
+        """Check if a number exists in a specific row in the inner 5x5 grid."""
+        for i in range(1, 6):
+            if self.grid[row][i] == number:
+                return True
+        return False
     
+    def number_exists_in_row_or_column_ends(self, number):
+        """Check if a number exists at either end of the row or column of a cell."""
+        x, y = self.selected_cell[0], self.selected_cell[1]
+        return self.grid[x][0] == number or self.grid[x][6] == number or self.grid[0][y] == number or self.grid[6][y] == number
+
+    def number_exists_in_diagonal_ends(self, number):
+        """Check if a number exists at either end of the diagonal of the grid."""
+        return self.grid[0][0] == number or self.grid[0][self.settings.grid_size - 1] == number or self.grid[self.settings.grid_size - 1][0] == number or self.grid[self.settings.grid_size - 1][self.settings.grid_size - 1] == number    
+    def is_inner_cell(self, cell):
+        """Return True if the cell is an inner cell, False otherwise."""
+        return 1 < cell[0] < self.settings.grid_size - 2 and 1 < cell[1] < self.settings.grid_size - 2
+
+    def number_exists_in_inner_grid(self, number):
+        for i in range(1, 5):
+            for j in range(1,5):
+                if self.grid[i][j] == number:
+                    return True
+        return False
+    
+
     def update(self):
         """Update the grid based on the key buffer."""
         if self.key_buffer and time.time() - self.key_time > 0.5:  # 0.5 seconds
@@ -162,17 +238,43 @@ class Grid():
                 if self.level == 2 and (self.selected_cell[0] == 0 or self.selected_cell[0] == self.settings.grid_size - 1 or self.selected_cell[1] == 0 or self.selected_cell[1] == self.settings.grid_size - 1):
                     # In level 2, outer cells accept all values between 2 and 25
                     if not self.number_exists_in_grid(number):
-                        if self.is_corner_cell(self.selected_cell) and not self.number_exists_in_inner_grid_diagonal(number, self.selected_cell):
-                            self.invalid_key_message = 'Invalid location'
-                            self.invalid_key_time = time.time()
-                        else:
+                        if self.number_exists_in_inner_grid_column(number,
+                                                                    self.selected_cell[1]) or self.number_exists_in_inner_grid_row(number, 
+                                                                    self.selected_cell[0]) or (self.is_corner_cell(self.selected_cell) and self.number_exists_in_inner_grid_diagonal(number,
+                                                                                                                                                                    self.selected_cell)):
                             self.grid[self.selected_cell[0]][self.selected_cell[1]] = number
                             self.key_buffer = ''
+                        else:
+                            self.invalid_key_message = 'Invalid number'
+                            self.invalid_key_time = time.time()
+                    else:
+                        self.invalid_key_message = str(number) + ' is already exists.'
+                        self.invalid_key_time = time.time()
+
+
+                elif self.level == 3:
+                    if not self.number_exists_in_grid(number):
+                        if self.is_adjacent_to_predecessor(number):
+                            if self.number_exists_in_row_or_column_ends(number):
+                                self.grid[self.selected_cell[0]][self.selected_cell[1]] = number
+                                self.key_buffer = ''
+
+                            elif self.number_exists_in_diagonal_ends(number):
+                                self.grid[self.selected_cell[0]][self.selected_cell[1]] = number
+                                self.key_buffer = ''
+                            
+                            else:
+                                self.invalid_key_message = 'Invalid number'
+                                self.invalid_key_time = time.time()
+                        else:
+                            self.invalid_key_message = 'Invalid number'
+                            self.invalid_key_time = time.time()
 
                     else:
                         self.invalid_key_message = str(number) + ' is already exists.'
                         self.invalid_key_time = time.time()
 
+                # Level 1
                 else:
                     if not self.number_exists_in_grid(number):
                         if self.is_adjacent_to_predecessor(number):
@@ -195,18 +297,27 @@ class Grid():
                 self.invalid_key_message = ''
             elif self.selected_cell != self.last_selected_cell:
                 self.last_selected_cell = self.selected_cell
-                time.sleep(0.2)  # delay before clearing the message
+                # time.sleep(0.2)  # delay before clearing the message
                 self.invalid_key_message = ''
 
 
     def is_adjacent_to_predecessor(self, number):
         """Check if the selected cell is adjacent to the cell containing the predecessor number."""
-        predecessor = number - 1
-        for i in range(self.settings.grid_size):
-            for j in range(self.settings.grid_size):
-                if self.grid[i][j] == predecessor:
-                    return abs(self.selected_cell[0] - i) <= 1 and abs(self.selected_cell[1] - j) <= 1
-        return False
+        if self.level == 1:
+            predecessor = number - 1
+            for i in range(self.settings.grid_size):
+                for j in range(self.settings.grid_size):
+                    if self.grid[i][j] == predecessor:
+                        return abs(self.selected_cell[0] - i) <= 1 and abs(self.selected_cell[1] - j) <= 1
+            return False
+        
+        elif self.level == 3:
+            predecessor = number - 1
+            for i in range(1,6):
+                for j in range(1,6):
+                    if self.grid[i][j] == predecessor:
+                        return abs(self.selected_cell[0] - i) <= 1 and abs(self.selected_cell[1] - j) <= 1
+            return False
 
 
     def handle_event(self, event):
@@ -259,6 +370,12 @@ class Grid():
                     if self.level == 2 and (i == 0 or i == self.settings.grid_size - 1 or j == 0 or j == self.settings.grid_size - 1):
                         if self.grid[i][j] == number:
                             return True
+                        
+        elif self.level == 3:
+            for i in range(1,6):
+                for j in range(1,6):
+                    if self.grid[i][j] == number:
+                        return True
         return False
     
     def select_cell(self, mouse_pos):

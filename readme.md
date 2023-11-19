@@ -17,7 +17,8 @@
 - <strike>Issues: saving issue in level2</strike>
 
 ### Level 3
-- Add Level 3 condition
-- if level 3 complete then set show the congratulation message
-- Add play again button
-- Refectoning
+- <strike>Add Level 3 condition</strike>
+- <strike>if level 3 complete then set show the congratulation message</strike>
+- <strike>Add play again button<strike>
+- <strike>Debugging issues</strike>
+- <strike>Refectoning</strike>
