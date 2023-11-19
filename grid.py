@@ -36,8 +36,8 @@ class Grid():
 
                 if self.level == 2 or self.level == 3:
                     self.settings.grid_top_left = (190, 30)
-                    self.expand_grid() 
-                    # self.settings.grid_size = 7
+                    self.settings.grid_size = 7
+                    # self.expand_grid() 
                 else:
                     self.settings.grid_size = 5
                     self.settings.grid_top_left = (250, 90)
@@ -88,7 +88,7 @@ class Grid():
             if self.level == 2:
                 self.settings.grid_top_left = (190, 30)
                 self.expand_grid()
-                
+
             return True  
             
         elif self.level == 2:

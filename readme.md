@@ -14,4 +14,10 @@
 ### Level 2
 - <strike>ADD extra ring cell</stike>
 - <strike>Level 2 Condition</stike>
-- Debugging issues: saving issue
+- <strike>Issues: saving issue in level2</strike>
+
+### Level 3
+- Add Level 3 condition
+- if level 3 complete then set show the congratulation message
+- Add play again button
+- Refectoning
